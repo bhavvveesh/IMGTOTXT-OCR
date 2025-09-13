@@ -2,12 +2,9 @@ import os
 import io
 from flask import Flask, render_template, request, jsonify
 import requests
-from dotenv import load_dotenv
 from PIL import Image
 
-# Load environment variables
-load_dotenv()
-API_KEY = os.getenv("OCR_API_KEY")
+API_KEY = os.getenv("OCR_API_KEY", "helloworld")  # fallback demo key
 OCR_URL = "https://api.ocr.space/parse/image"
 
 app = Flask(__name__)
@@ -17,7 +14,7 @@ def resize_image_if_large(image_bytes, max_size=1000):
     image = Image.open(io.BytesIO(image_bytes))
     image.thumbnail((max_size, max_size))
     buffer = io.BytesIO()
-    image.save(buffer, format=image.format)
+    image.save(buffer, format=image.format or "PNG")
     return buffer.getvalue()
 
 @app.route("/")
@@ -46,7 +43,7 @@ def extract_text():
             data={"apikey": API_KEY, "language": "eng", "isOverlayRequired": False}
         )
         result = response.json()
-        print(result)  # Debug
+        print(result)  # Debug log
 
         if result.get("OCRExitCode") != 1:
             error_msg = result.get("ErrorMessage", ["Unknown OCR error"])[0]
@@ -66,4 +63,5 @@ def extract_text():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Render provides PORT
+    app.run(host="0.0.0.0", port=port)
